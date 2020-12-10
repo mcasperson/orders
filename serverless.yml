@@ -1,4 +1,4 @@
-service: carts
+service: orders
 provider:
   name: aws
   runtime: java11
@@ -11,13 +11,13 @@ provider:
         - 'ec2:DeleteNetworkInterface'
       Resource: "*"
 package:
-  artifact: target/carts-original.jar
+  artifact: target/orders-original.jar
 functions:
-  cart:
+  orders:
     environment:
       DB_HOSTNAME: ${opt:hostname}
       DB_PASSWORD: ${opt:password}
-    handler: works.weave.socks.cart.StreamLambdaHandler
+    handler: works.weave.socks.orders.StreamLambdaHandler
     events:
       - http: ANY /
       - http: 'ANY {proxy+}'
