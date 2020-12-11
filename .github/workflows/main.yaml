@@ -43,47 +43,23 @@ jobs:
       - name: Integration Tests
         run: mvn integration-test
 
-      # Build docker image for service
-      - name: Build docker image
-        uses: docker/build-push-action@v1
-        with:
-          push: false
-          dockerfile: docker/orders/Dockerfile.github
-          repository: ${{ env.GROUP }}/${{ env.REPO }}
-          tag_with_ref: true
-          tag_with_sha: true
-          tags: ${{ github.sha }}
-
-      # Build docker image for mock service
-      - name: Build mock docker image
-        uses: docker/build-push-action@v1
-        with:
-          push: false
-          path: test/json-server/
-          dockerfile: test/json-server/Dockerfile
-          repository: weaveworksdemos/json-server
-          tags: latest
-          
-      # Run simple test against built container
-      - name: Test docker image
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
         env:
-          DOCKER_BUILDKIT: 1
-        run: ./test/test.sh container.py --tag ${GITHUB_SHA}
-
-      # Upload coverage results to coveralls
-      - name: Submit Coveralls
-        env:
-          COVERALLS_TOKEN: ${{ secrets.COVERALLS_TOKEN }}
-        run: mvn -DrepoToken=${COVERALLS_TOKEN} -DserviceJobId=${GITHUB_RUN_ID} -Dbranch=${GITHUB_REF} -DpullRequest=${GITHUB_HEAD_REF} -DserviceName=GITHUB verify jacoco:report coveralls:report
-
-      # Push to dockerhub
-      - name: Push to Docker Hub
-        uses: docker/build-push-action@v1
-        if: startsWith(github.ref, 'refs/tags/v') || github.ref == 'refs/heads/master'
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          username: ${{ secrets.DOCKER_USER }}
-          password: ${{ secrets.DOCKER_PASS }}
-          dockerfile: docker/orders/Dockerfile.github
-          repository: ${{ env.GROUP }}/${{ env.REPO }}
-          tag_with_ref: true
-          tag_with_sha: true
+          tag_name: 0.0.${{ github.run_number }}
+          release_name: Release 0.0.${{ github.run_number }}
+          draft: false
+          prerelease: false
+      - name: Upload Release Asset
+        id: upload-release-asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: target/orders.jar.original
+          asset_name: orders-original.jar
+          asset_content_type: application/zip
